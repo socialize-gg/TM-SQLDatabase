@@ -1,0 +1,10 @@
+<component name="libraryTable">
+  <library name="target">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/target/TM-SQLDatabase.jar!/" />
+      <root url="jar://$PROJECT_DIR$/target/TM-SQLDatabase-v0.0.3-b001.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

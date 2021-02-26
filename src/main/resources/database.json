@@ -1,0 +1,23 @@
+{
+  "version-control": {
+    "version": 1.0
+  },
+  "info":
+  [
+    "Database configuration is automatically generated when a plugin or module",
+    "attaches to Titan.",
+    "",
+    "The only edits required to this file is filling in the credentials for your database.",
+    "",
+    "Plugins can use their own databases to split connections as well as splitting tables between databases.",
+    "",
+    "The maximum connection field must be a minimum of 1, if there is performance issues with database it is recommended to increase this."
+  ],
+  "config": {
+    "thread-pool-size": 4,
+    "debug-to-console": false
+  },
+  "databases": {
+
+  }
+}
