@@ -1,5 +1,8 @@
 package net.thenova.titan.module.sqldatabase.sql;
 
+import com.google.common.base.Function;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.zaxxer.hikari.HikariDataSource;
@@ -16,6 +19,7 @@ import net.thenova.titan.module.ModuleManager;
 import net.thenova.titan.module.sqldatabase.settings.DatabaseConnectionSettings;
 import net.thenova.titan.module.sqldatabase.tables.Database;
 import net.thenova.titan.module.sqldatabase.tables.DatabaseTable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.File;
 import java.util.HashMap;
@@ -23,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 /**
  * Copyright 2020 ipr0james
@@ -102,7 +107,9 @@ public enum SQLConnectionHandler {
         this.debugToConsole = config.bool("debug-to-console");
 
         final JSON databases = this.file.getJson().json("databases");
-        databases.raw().keySet().forEach(this::loadSource);
+        databases.raw()
+                .keySet()
+                .forEach(this::loadSource);
     }
 
     public void shutdown() {
@@ -155,19 +162,27 @@ public enum SQLConnectionHandler {
      *
      * @param tables - List<DatabaseTable>
      */
-    public final void createTables(final List<DatabaseTable> tables) {
+    @SuppressWarnings("UnstableApiUsage")
+    public final ListenableFuture<Void> createTables(final List<DatabaseTable> tables) {
         final Map<String, SQLExecutor> executors = new HashMap<>();
         tables.forEach(table -> {
             if(executors.containsKey(table.getDatabase().name())) {
                 executors.get(table.getDatabase().name()).add(table.build());
             } else {
-                executors.put(table.getDatabase().name(), table.build());
-            }
+                executors.put(table.getDatabase().name(), table.build()); }
         });
 
-        executors.values().forEach(SQLExecutor::transaction);
+        return Futures.transform(Futures.allAsList(executors.values()
+                        .stream()
+                        .map(SQLExecutor::transaction)
+                        .collect(Collectors.toList())),
+                new Function<List<Void>, Void>() {
+                    @Override
+                    public final @Nullable Void apply(final @Nullable List<Void> voids) {
+                        return null;
+                    }
+                }, this.executorService);
     }
-
 
     public void incrementExecutions() {
         this.executions++;

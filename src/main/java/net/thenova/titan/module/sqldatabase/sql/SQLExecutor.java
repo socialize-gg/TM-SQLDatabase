@@ -13,7 +13,6 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 /**
@@ -44,7 +43,7 @@ public final class SQLExecutor {
         private final String query;
         private final Object[] parameters;
 
-        private Consumer<ResultSet> result;
+        private SQLConsumer result;
     }
 
     private final HikariDataSource source;
@@ -104,7 +103,7 @@ public final class SQLExecutor {
      * @param result ResultSet
      * @return SQLExecutor
      */
-    public final SQLExecutor result(final Consumer<ResultSet> result) {
+    public final SQLExecutor result(final SQLConsumer result) {
         try {
             if (this.operations.isEmpty()) {
                 throw new SQLDatabaseException("Tried to retrieve results when no queries were present.");
@@ -128,9 +127,9 @@ public final class SQLExecutor {
     }
 
     /**
+     * Handle commit all objects to SQL for results and updates
      *
-     *
-     * @return
+     * @return Void called for completion or future failure.
      */
     public final ListenableFuture<Void> commit() {
         if(this.source == null) {
@@ -139,18 +138,24 @@ public final class SQLExecutor {
         }
 
         final long start = System.currentTimeMillis();
-        return SQLConnectionHandler.INSTANCE.getExecutorService().submit(() -> {
-            final long time = System.currentTimeMillis();
-            this.handle();
-            this.close();
+        return SQLConnectionHandler.INSTANCE.getExecutorService()
+                .submit(() -> {
+                    final long time = System.currentTimeMillis();
+                    this.handle();
+                    this.close();
 
-            this.logger.info("[SQLExecutor] [handleCommit] - Commit completion, internal: %d, full: %d",
-                    System.currentTimeMillis() - start,
-                    System.currentTimeMillis() - time);
-            return null;
+                    this.logger.info("[SQLExecutor] [handleCommit] - Commit completion, internal: %d, full: %d",
+                            System.currentTimeMillis() - start,
+                            System.currentTimeMillis() - time);
+                    return null;
         });
     }
 
+    /**
+     * Handle bulk statement update in a non-autocommit environment
+     *
+     * @return Void called for completion or future failure.
+     */
     public final ListenableFuture<Void> transaction() {
         if(this.source == null) {
             Titan.INSTANCE.getLogger().debug("[SQLDatabase] [SQLExecutor] - Avoided commit due to connection source null");
@@ -158,56 +163,55 @@ public final class SQLExecutor {
         }
 
         final long start = System.currentTimeMillis();
-        return SQLConnectionHandler.INSTANCE.getExecutorService().submit(() -> {
-            final long time = System.currentTimeMillis();
-            final Connection connection = this.connection();
+        return SQLConnectionHandler.INSTANCE.getExecutorService()
+                .submit(() -> {
+                    final long time = System.currentTimeMillis();
+                    final Connection connection = this.connection();
 
-            connection.setAutoCommit(false);
-            this.handle();
-            connection.commit();
-            this.close();
+                    connection.setAutoCommit(false);
+                    this.handle();
+                    connection.commit();
+                    this.close();
 
-            this.logger.info("[SQLExecutor] [handleTransaction] - Transaction completion, internal: %d, full: %d",
-                    System.currentTimeMillis() - start,
-                    System.currentTimeMillis() - time);
+                    this.logger.info("[SQLExecutor] [handleTransaction] - Transaction completion, internal: %d, full: %d",
+                            System.currentTimeMillis() - start,
+                            System.currentTimeMillis() - time);
 
-            return null;
+                    return null;
         });
     }
 
     /**
      * Handle all Operations for executor when called
      */
-    private void handle() {
+    private void handle() throws SQLDatabaseException {
         SQLConnectionHandler.INSTANCE.incrementExecutions();
         SQLConnectionHandler.INSTANCE.incrementStatements(this.operations.size());
 
-        this.operations.forEach(operation -> {
+        for(final SQLOperation operation : this.operations) {
             final long time = System.currentTimeMillis();
             try {
-                try {
-                    final PreparedStatement statement = SQLExecutor.this.statement(operation.query, operation.parameters);
-                    if (operation.type == Type.SELECT) {
-                        final ResultSet result = statement.executeQuery();
+                final PreparedStatement statement = SQLExecutor.this.statement(operation.query, operation.parameters);
+                if (operation.type == Type.SELECT) {
+                    final ResultSet result = statement.executeQuery();
 
-                        if(operation.result != null) {
-                            operation.result.accept(result);
-                        } else {
-                            throw new SQLDatabaseException("Failed to return ResultSet as operation.result was null");
-                        }
+                    if (operation.result != null) {
+                        operation.result.accept(result);
                     } else {
-                        statement.execute();
+                        throw new SQLDatabaseException("Failed to return ResultSet as operation.result was null");
                     }
-                } catch (final SQLException ex) {
-                    throw new SQLDatabaseException("Failed to execute query '"
-                            + operation.query
-                            + "' with ["
-                            + Arrays.stream(operation.parameters)
-                                .map(Object::toString)
-                                .collect(Collectors.joining(", "))
-                            + "]", ex);
+                } else {
+                    statement.execute();
                 }
-            } catch (final SQLDatabaseException ignored) {}
+            } catch (final SQLException ex) {
+                throw new SQLDatabaseException("Failed to execute query '"
+                        + operation.query
+                        + "' with ["
+                        + Arrays.stream(operation.parameters)
+                        .map(Object::toString)
+                        .collect(Collectors.joining(", "))
+                        + "]", ex);
+            }
 
             this.logger.info("[SQLExecutor] [handle] - Completion time %d, Parameters [%s], Statement: '%s'",
                     System.currentTimeMillis() - time,
@@ -215,7 +219,7 @@ public final class SQLExecutor {
                             .map(Object::toString)
                             .collect(Collectors.joining(", ")),
                     operation.query);
-        });
+        }
     }
 
     /**
