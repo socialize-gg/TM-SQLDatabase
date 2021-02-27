@@ -1,0 +1,13 @@
+<component name="libraryTable">
+  <library name="Maven: com.github.thenova-net:Titan:1.0.1-b005">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/../../Maven/repository/com/github/thenova-net/Titan/1.0.1-b005/Titan-1.0.1-b005.jar!/" />
+    </CLASSES>
+    <JAVADOC>
+      <root url="jar://$PROJECT_DIR$/../../Maven/repository/com/github/thenova-net/Titan/1.0.1-b005/Titan-1.0.1-b005-javadoc.jar!/" />
+    </JAVADOC>
+    <SOURCES>
+      <root url="jar://$PROJECT_DIR$/../../Maven/repository/com/github/thenova-net/Titan/1.0.1-b005/Titan-1.0.1-b005-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>

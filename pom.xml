@@ -6,7 +6,7 @@
 
     <groupId>net.thenova.titan.module.sqldatabase</groupId>
     <artifactId>TM-SQLDatabase</artifactId>
-    <version>1.1.2-b001</version>
+    <version>1.1.2-b002</version>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -29,9 +29,9 @@
 
         <!-- Core - Titan -->
         <dependency>
-            <groupId>net.thenova.titan</groupId>
+            <groupId>com.github.thenova-net</groupId>
             <artifactId>Titan</artifactId>
-            <version>1.0.1-b001</version>
+            <version>1.0.1-b005</version>
             <scope>provided</scope>
         </dependency>
 
