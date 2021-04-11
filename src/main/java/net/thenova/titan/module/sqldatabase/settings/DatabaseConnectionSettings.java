@@ -49,7 +49,7 @@ public final class DatabaseConnectionSettings {
         source.setMinimumIdle(1);
         source.setMaximumPoolSize(this.maxConnections);
 
-        source.setLeakDetectionThreshold(2000L);
+        source.setLeakDetectionThreshold(4000L);
         source.addDataSourceProperty("useSSL", "false");
         source.addDataSourceProperty("useUnicode", "true");
         source.addDataSourceProperty("characterEncoding", "utf-8");
